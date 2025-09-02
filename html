@@ -1,0 +1,65 @@
+<html>
+<head>
+<title>My HTML Document</title>
+<meta charset="UTF-8">
+</head>
+<body>
+// pcCleaner.js
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+/**
+ * Recursively deletes files in a directory
+ * @param {string} dirPath
+ */
+function clearDirectory(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        console.log(`Directory does not exist: ${dirPath}`);
+        return;
+    }
+    fs.readdirSync(dirPath).forEach((file) => {
+        const curPath = path.join(dirPath, file);
+        try {
+            if (fs.lstatSync(curPath).isDirectory()) {
+                clearDirectory(curPath); // recursion
+                fs.rmdirSync(curPath, { recursive: true });
+            } else {
+                fs.unlinkSync(curPath);
+            }
+        } catch (err) {
+            console.error(`Failed to delete: ${curPath}. Reason: ${err.message}`);
+        }
+    });
+}
+
+/**
+ * Cleans common temporary directories for the current user
+ */
+function cleanTempDirs() {
+    const userTmp = os.tmpdir();
+    const homeDir = os.homedir();
+    const tempLocations = [userTmp];
+
+    // Add Windows-specific temp directories
+    if (os.platform() === 'win32') {
+        tempLocations.push(
+            path.join(homeDir, 'AppData', 'Local', 'Temp'),
+            path.join(homeDir, 'AppData', 'Local', 'Microsoft', 'Windows', 'INetCache'),
+            path.join(homeDir, 'AppData', 'Local', 'Microsoft', 'Windows', 'Temporary Internet Files')
+        );
+    }
+
+    tempLocations.forEach(dir => {
+        console.log(`Cleaning: ${dir}`);
+        clearDirectory(dir);
+    });
+
+    console.log('Cleaning complete!');
+}
+
+cleanTempDirs();
+
+</body>
+
+</html>

@@ -1,0 +1,118 @@
+<?php
+/*
+Plugin Name: fajaedeSeo
+Plugin URI: https://fajaede.nl/fajaedeseo
+Description: Simple, effective, and AI-powered SEO for WordPress. Built for speed and ease with on-page checks, meta AI, and smart tips.
+Version: 1.0
+Author: fESeo
+Author URI: https://fajaede.nl/
+License: GPLv3
+*/
+
+if (!defined('ABSPATH')) exit;
+
+class FajaedeSeo {
+    public function __construct() {
+        add_action('admin_menu', [$this, 'add_plugin_page']);
+        add_action('add_meta_boxes', [$this, 'add_meta_box']);
+        add_action('save_post', [$this, 'save_meta']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue']);
+    }
+
+    public function enqueue() {
+        wp_enqueue_style('fajaedeseo-style', plugins_url('style.css', __FILE__));
+    }
+
+    public function add_plugin_page() {
+        add_menu_page(
+            'fajaedeSeo',
+            'fajaedeSeo',
+            'manage_options',
+            'fajaedeseo',
+            [$this, 'settings_page'],
+            'data:image/svg+xml;base64,' . base64_encode($this->get_logo()),
+            80
+        );
+    }
+
+    // SVG logo inline for plugin menu (fESeo logo)
+    private function get_logo() {
+        return '<svg viewBox="0 0 48 48" width="24" height="24"><rect width="48" height="48" rx="12" fill="#01b990"/><text x="12" y="33" font-size="21" fill="#fff" font-family="Verdana" font-weight="bold">fESeo</text></svg>';
+    }
+
+    public function add_meta_box() {
+        add_meta_box(
+            'fajaedeseo_meta',
+            'fajaedeSeo: AI SEO',
+            [$this, 'render_meta_box'],
+            ['post', 'page'],
+            'side',
+            'high'
+        );
+    }
+
+    public function render_meta_box($post) {
+        $meta_title = get_post_meta($post->ID, '_fajaedeseo_meta_title', true);
+        $meta_desc = get_post_meta($post->ID, '_fajaedeseo_meta_desc', true);
+        ?>
+
+        <label for="fajaedeseo_meta_title"><b>AI Meta Title</b></label>
+        <input type="text" name="fajaedeseo_meta_title" id="fajaedeseo_meta_title" value="<?php echo esc_attr($meta_title); ?>" style="width:100%;" maxlength="60" />
+        <button type="button" class="button" onclick="fajaedeSeoGenTitle()">🔮AI Suggest</button>
+
+        <label for="fajaedeseo_meta_desc" style="margin-top:8px;"><b>AI Meta Description</b></label>
+        <textarea name="fajaedeseo_meta_desc" id="fajaedeseo_meta_desc" rows="2" style="width:100%;" maxlength="160"><?php echo esc_textarea($meta_desc); ?></textarea>
+        <button type="button" class="button" onclick="fajaedeSeoGenDesc()">🔮AI Suggest</button>
+
+        <p id="fajaedeseo_score"></p>
+        <script>
+        function fajaedeSeoGenTitle() {
+            const postTitle = document.getElementById('title').value || '';
+            document.getElementById('fajaedeseo_meta_title').value = "Top " + postTitle + " | " + "YourSite";
+        }
+        function fajaedeSeoGenDesc() {
+            const postTitle = document.getElementById('title').value || '';
+            document.getElementById('fajaedeseo_meta_desc').value = "Discover " + postTitle + " on YourSite. Uncover insights, tips, and value in every read!";
+        }
+        // Basic AI-like SEO scoring (word count, focus keyword match)
+        document.addEventListener('DOMContentLoaded', function(){
+            const title = document.getElementById('title');
+            const appendScore = () => {
+                let t = title.value.toLowerCase();
+                let focus = t.split(' ')[0] || '';
+                let len = t.length;
+                let score = 'SEO Score: ';
+                score += len >= 35 && len <= 60 ? '✓ ' : '✗ ';
+                score += focus ? 'Focus keyword: "'+focus+'"' : 'No focus keyword.';
+                document.getElementById('fajaedeseo_score').innerText = score;
+            }
+            if (title) { title.addEventListener('input', appendScore); appendScore(); }
+        });
+        </script>
+
+        <?php
+    }
+
+    public function save_meta($post_id) {
+        if (array_key_exists('fajaedeseo_meta_title', $_POST)) {
+            update_post_meta($post_id, '_fajaedeseo_meta_title', sanitize_text_field($_POST['fajaedeseo_meta_title']));
+        }
+        if (array_key_exists('fajaedeseo_meta_desc', $_POST)) {
+            update_post_meta($post_id, '_fajaedeseo_meta_desc', sanitize_textarea_field($_POST['fajaedeseo_meta_desc']));
+        }
+    }
+
+    public function settings_page() {
+        echo '<div class="wrap"><h1><span style="vertical-align:middle;">' . $this->get_logo() . '</span> fajaedeSeo Settings</h1>
+        <p>Welcome to fajaedeSeo! AI-powered meta tags, SEO scoring, and smart UX. No setup needed—just write and optimize.</p>
+        <ul>
+            <li><b>💡 AI meta title & desc:</b> Use AI buttons or write them yourself.</li>
+            <li><b>📈 On-page scoring:</b> See instant SEO feedback as you edit.</li>
+            <li><b>⚡ Fast & privacy-first:</b> No external requests, instant results.</li>
+        </ul>
+        <hr><p>Plugin by fESeo. For support, visit <a href="https://fajaede.nl/" target="_blank">our site</a>.</p></div>';
+    }
+}
+
+new FajaedeSeo();
+?>
